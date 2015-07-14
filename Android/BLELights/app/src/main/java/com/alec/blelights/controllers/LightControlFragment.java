@@ -18,6 +18,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Toast;
@@ -41,7 +42,8 @@ public class LightControlFragment extends Fragment {
     private View view;
     private SeekBar red, green, blue;
     private ImageView rI, gI, bI, overallColor;
-    private Button updateButton;
+    private EditText groupNumber;
+    private Button updateButton, allOffButton, on100Button, on50Button;
     private RBLService mBluetoothLeService;
 
     private Map<UUID, BluetoothGattCharacteristic> map = new HashMap<UUID, BluetoothGattCharacteristic>();
@@ -143,15 +145,19 @@ public class LightControlFragment extends Fragment {
         bI = (ImageView) view.findViewById(R.id.blue_image);
         overallColor = (ImageView) view.findViewById(R.id.overall_color);
         updateButton = (Button) view.findViewById(R.id.update_button);
-
+        allOffButton = (Button) view.findViewById(R.id.button_alloff);
+        allOffButton.setOnClickListener(new AllOffButtonClicked());
+        on100Button = (Button) view.findViewById(R.id.button_allon100);
+        on100Button.setOnClickListener(new On100ButtonClicked());
+        on50Button = (Button) view.findViewById(R.id.button_allon50);
+        on50Button.setOnClickListener(new On50ButtonClicked());
         updateButton.setOnClickListener(new UpdateLightsClicked());
+        groupNumber = (EditText) view.findViewById(R.id.group_id_edittext);
 
         return view;
     }
 
     private class UpdateLightsClicked implements View.OnClickListener {
-
-
         @Override
         public void onClick(View v) {
             BluetoothGattCharacteristic characteristic = map.get(RBLService.UUID_BLE_SHIELD_TX);
@@ -163,6 +169,12 @@ public class LightControlFragment extends Fragment {
             tx[3] = (byte) blue.getProgress();
             tx[4] = 0x00;
             tx[5] = 0x00;
+            try {
+                byte group = Byte.parseByte(groupNumber.getText().toString());
+                tx[5] = group;
+            } catch (Exception e) {
+                tx[5] = 0x00;
+            }
             tx[6] = (byte) 100;
             mBluetoothLeService.connect(light.getAddress());
             characteristic.setValue(tx);
@@ -171,6 +183,37 @@ public class LightControlFragment extends Fragment {
         }
     }
 
+    private abstract class SetAllLightsButtonClicked implements View.OnClickListener {
+
+        public void setAll(int value) {
+            blue.setProgress(value);
+            green.setProgress(value);
+            red.setProgress(value);
+            groupNumber.setText("0");
+        }
+    }
+
+    private class AllOffButtonClicked extends SetAllLightsButtonClicked {
+
+        @Override
+        public void onClick(View v) {
+            setAll(0);
+        }
+    }
+    private class On50ButtonClicked extends SetAllLightsButtonClicked {
+
+        @Override
+        public void onClick(View v) {
+            setAll(50);
+        }
+    }
+    private class On100ButtonClicked extends SetAllLightsButtonClicked {
+
+        @Override
+        public void onClick(View v) {
+            setAll(100);
+        }
+    }
     private void getGattService(BluetoothGattService gattService) {
         if (gattService == null)
             return;

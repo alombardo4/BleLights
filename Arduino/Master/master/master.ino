@@ -1,10 +1,4 @@
 
-#include "RF24.h"
-
-
-
-
-
 /**
  * Master of master slave BLE system
  * Version 0.0.1
@@ -14,6 +8,9 @@
 
 //"RBL_nRF8001.h/spi.h/boards.h" is needed in every new project
 #include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+#include <RF24_config.h>
 #include <EEPROM.h>
 #include <boards.h>
 #include <RBL_nRF8001.h>
@@ -28,9 +25,11 @@ byte message[32];
 // same as message
 byte currentSettings[32];
 
-RF24 radio(8,9);
+
 // Radio pipe addresses for the 2 nodes to communicate.
-const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };
+RF24 radio(9,10);
+const uint64_t pipe = 0xE8E8F0F0E1LL;
+byte ids[10] = {1,0,0,0,0,0,0,0,0,0};
 
 void setup()
 {  
@@ -56,9 +55,9 @@ void setup()
   Serial.println("Starting ble");
 
 
-  radio.begin();                           // Setup and configure rf radio
-  radio.openWritingPipe(pipes[1]);
-  
+ radio.begin();
+ radio.openWritingPipe(pipe);
+ radio.powerUp();
   
 }
 
@@ -78,14 +77,20 @@ void loop()
       }
       i++;
     }
-
+    byte sender[7];
+    for (int j = 0; j < 7; j++) {
+      sender[j] = (byte) message[j];
+    }
+    while(!radio.write(sender, 7)) {
+      Serial.println("Error writing message");
+    }
     for (int j = 0; j < 7; j++) {
       Serial.print(message[j]);
       Serial.print(" ");
     }
     Serial.print("\n");
-      
-    if (message[5] == 0 || message[5] == 1) {
+
+    if (isInGroup(message[5])) {
       for (int j = 0; j < 7; j++) {
         currentSettings[j] = message[j];
       }
@@ -93,13 +98,7 @@ void loop()
       updateColor(currentSettings[1], currentSettings[2], currentSettings[3], currentSettings[6]);
       resetArrays();
     }
-    radio.stopListening();
-    if(radio.write(&message, 32)) {
-      Serial.println("WROTE");
-      delay(1000);
-    } else {
-      Serial.println("FAILED WRITE");
-    }
+    
 
     
   }
@@ -143,4 +142,10 @@ void resetArrays() {
     currentSettings[i] = (byte) 255;
   }
 }
-
+boolean isInGroup(byte id) {
+  for (int i = 0; i < 10; i++) {
+    if (id == ids[i])
+      return true;
+  }
+  return false;
+}

@@ -107,4 +107,38 @@
         android:background="@color/primary"
         android:layout_alignParentStart="true"
         android:layout_alignParentEnd="true" />
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:ems="10"
+        android:id="@+id/group_id_edittext"
+        android:hint="@string/groupid"
+        android:layout_alignBottom="@+id/update_button"
+        android:layout_alignParentStart="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/alloff"
+        android:id="@+id/button_alloff"
+        android:layout_below="@+id/update_button"
+        android:layout_alignParentStart="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/allon50"
+        android:id="@+id/button_allon50"
+        android:layout_alignTop="@+id/button_alloff"
+        android:layout_toEndOf="@+id/button_alloff" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/allon100"
+        android:id="@+id/button_allon100"
+        android:layout_below="@+id/update_button"
+        android:layout_toEndOf="@+id/button_allon50" />
 </RelativeLayout>

@@ -1,72 +1,88 @@
-
-
 /**
- * Master of master slave BLE system
+ * Slave of master slave BLE system
  * Version 0.0.1
  * Features in place: 
  *    - BLE String read
  */
 
-//"RBL_nRF8001.h/spi.h/boards.h" is needed in every new project
 #include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+#include <RF24_config.h>
 #include <EEPROM.h>
 #include <boards.h>
 #include <Adafruit_NeoPixel.h>
 #define NUMPIXELS 5
 #define NEOPIXEL_PIN 5
 
-#include "RF24.h"
+byte ids1[10] = {1,0,0,0,0,0,0,0,0,0};
+byte ids2[10] = {2,0,0,0,0,0,0,0,0,0};
+byte ids3[10] = {3,0,0,0,0,0,0,0,0,0};
+byte ids4[10] = {4,0,0,0,0,0,0,0,0,0};
+byte ids5[10] = {5,0,0,0,0,0,0,0,0,0};
+
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(5, 5, NEO_RGB + NEO_KHZ800);
 // 0 R G B Program SlaveID Brightness
-byte message[32];
+byte msg[7];
 
-RF24 radio(8,9);
-// Radio pipe addresses for the 2 nodes to communicate.
-const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };
+RF24 radio(9,10);
+const uint64_t pipe = 0xE8E8F0F0E1LL;
+
+
 
 void setup()
 {  
   // Enable serial debug
   Serial.begin(57600);
-  
-  resetArrays();
+
 
   //init strip
   strip.begin();
   updateColor(100,100,100,100);
   delay(500);
   updateColor(0,0,0,0);
-  Serial.println("Starting ble");
 
-
-  radio.begin();                           // Setup and configure rf radio
-  
-  radio.openReadingPipe(1,pipes[1]);
-
-  radio.startListening();                 // Start listening
+  //start radio
+  radio.begin();
+  radio.openReadingPipe(1,pipe);
+  radio.powerUp();
+  radio.startListening();
+ 
+  Serial.println("Radio listening");
 
 }
-
-unsigned char buf[16] = {0};
-unsigned char len = 0;
 
 
 void loop()
 {
-  while(radio.available()) {
-    radio.read(&message, 32);
+  if (radio.available()) {
+    bool done = false;
+    while(!done) {
+      done = radio.read(msg, 7);
+      if (isInGroup(msg[5])) {
+        updateColor((int)msg[1], (int)msg[2], (int)msg[3], (int)msg[6]);
+      }
+      
+      for (int i = 0; i < 7; i++) {
+        Serial.print(msg[i]);
+        Serial.print(' ');
+      }
+      Serial.println();
+      delay(10);
+    }
 
-  
+  } else {
 
-    updateColor(message[1], message[2], message[3], message[6]);
-    
-    Serial.print(message[1]);
-    Serial.print(' ');
-    Serial.print(message[2]);
-    Serial.print(' ');
-    Serial.print(message[3]);
-    Serial.println();
   }
+
+}
+
+boolean isInGroup(byte id) {
+  for (int i = 0; i < 10; i++) {
+    if (id == ids[i])
+      return true;
+  }
+  return false;
 }
 
 void updateColor(int r, int g, int b, int brightness) {
@@ -90,8 +106,8 @@ void updateColor(int r, int g, int b, int brightness) {
   strip.show();
 }
 void resetArrays() {
-  for (int i = 0; i < 32; i++) {
-    message[i] = 255;
+  for (int i = 0; i < 7; i++) {
+    msg[i] = 255;
     
   }
 }
